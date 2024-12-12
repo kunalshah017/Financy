@@ -1,0 +1,27 @@
+{
+  "name": "financy",
+  "module": "server.ts",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --watch server.ts",
+    "start": "bun run server.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.13.7",
+    "@types/uuid": "^10.0.0",
+    "axios": "^1.7.9",
+    "fs-extra": "^11.2.0",
+    "hono": "^4.6.13",
+    "image-to-base64": "^2.2.0",
+    "mongoose": "^8.8.4",
+    "ollama": "^0.5.11",
+    "twilio": "^5.3.7",
+    "uuid": "^11.0.3"
+  }
+}
