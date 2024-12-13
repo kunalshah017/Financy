@@ -64,4 +64,24 @@ const addSaving = async (user: any, amount: number, description: string) => {
   );
 };
 
-export { updateUpiId, addFriend, addExpense, addSaving };
+const updateSolanaWallet = async (
+  user: any,
+  secretKey: string,
+  publicAddress: string,
+  recoveryPhrase: string
+) => {
+  await User.findOneAndUpdate(
+    { phoneNumber: user.phoneNumber },
+    {
+      $set: {
+        solanaWallet: {
+          secretKey,
+          publicAddress,
+          recoveryPhrase,
+        },
+      },
+    }
+  );
+};
+
+export { updateUpiId, addFriend, addExpense, addSaving, updateSolanaWallet };

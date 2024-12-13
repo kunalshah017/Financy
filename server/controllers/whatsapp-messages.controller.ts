@@ -8,13 +8,13 @@ import { v4 as uuidv4 } from "uuid";
 const imageToBase64 = require("image-to-base64");
 
 import client from "../config/twilio";
-import { sendWhatsappMessage } from "../utils/whatsapp-messages";
 import { User } from "../models/User.model";
 
 import {
   cleanPhoneNumber,
   extractJsonFromOllamaResponse,
 } from "../utils/helper";
+import { sendWhatsappMessage } from "../utils/whatsapp-messages";
 import { getFunctionCall } from "../utils/ollama-prompts";
 
 import {
@@ -22,9 +22,14 @@ import {
   addFriend,
   addExpense,
   addSaving,
+  updateSolanaWallet,
 } from "../utils/db-mutation";
-
 import { getFriendsPhoneNumbers } from "../utils/db-query";
+import {
+  createSolanaWallet,
+  getSolanaBalance,
+  sendSolanaTransaction,
+} from "../utils/solana-functions";
 
 // Text Messages are handled here
 
@@ -162,6 +167,201 @@ const handleTextMessage = async (
         )}`
       );
 
+      return c.json({ success: true });
+    }
+
+    if (callFunction === "createSolanaWallet") {
+      if (callFunction === "createSolanaWallet") {
+        try {
+          // Get fresh user data with wallet info
+          const currentUser = await User.findOne({
+            phoneNumber: cleanPhoneNumber(From),
+          }).select("+solanaWallet");
+
+          if (!currentUser) {
+            throw new Error("User not found");
+          }
+
+          // Multiple security checks for existing wallet
+          if (
+            currentUser.solanaWallet &&
+            currentUser.solanaWallet.publicAddress &&
+            currentUser.solanaWallet.secretKey
+          ) {
+            await sendWhatsappMessage(
+              cleanPhoneNumber(From),
+              "*Security Alert*: You already have an active Solana wallet! " +
+                "\nask Financy to provide your solana wallet details"
+            );
+            return c.json({ success: true });
+          }
+
+          // Only create new wallet if none exists
+          const wallet = createSolanaWallet();
+          await updateSolanaWallet(
+            currentUser,
+            wallet.secretKey,
+            wallet.publicKey,
+            String(wallet.mnemonic)
+          );
+
+          await sendWhatsappMessage(
+            cleanPhoneNumber(From),
+            `Here's your new Solana wallet! 🌟\n\n` +
+              `Public Address:\n${wallet.publicKey}\n\n` +
+              `⚠️ KEEP THESE PRIVATE & SECURE ⚠️\n\n` +
+              `Secret Key:\n${wallet.secretKey}\n\n` +
+              `Recovery Phrase:\n${wallet.mnemonic}\n` +
+              `\n\nWelcome to DeFi World of Financy 🪙!`
+          );
+
+          return c.json({ success: true });
+        } catch (error) {
+          console.error("Wallet creation error:", error);
+          await sendWhatsappMessage(
+            cleanPhoneNumber(From),
+            "Sorry, there was an error creating your wallet. Please try again later."
+          );
+          return c.json({ success: false });
+        }
+      }
+      if (user.solanaWallet && user.solanaWallet.publicKey) {
+        await sendWhatsappMessage(
+          cleanPhoneNumber(From),
+          "You already have a Solana wallet! ask Financy to provide your solana wallet details"
+        );
+        return c.json({ success: true });
+      }
+
+      const wallet = createSolanaWallet();
+      await updateSolanaWallet(
+        user,
+        wallet.secretKey,
+        wallet.publicKey,
+        wallet.mnemonic
+      );
+
+      await sendWhatsappMessage(
+        cleanPhoneNumber(From),
+        `Here's your new Solana wallet! 🌟\n\n` +
+          `Public Address:\n${wallet.publicKey}\n\n` +
+          `⚠️ KEEP THESE PRIVATE & SECURE ⚠️\n\n` +
+          `Secret Key:\n${wallet.secretKey}\n\n` +
+          `Recovery Phrase:\n${wallet.mnemonic}` +
+          `Welcome to DeFi World of Financy 🪙!`
+      );
+
+      return c.json({ success: true });
+    }
+
+    if (callFunction === "getSolanaBalance") {
+      if (!user.solanaWallet) {
+        await sendWhatsappMessage(
+          cleanPhoneNumber(From),
+          "Please create a Solana wallet by asking Financy to create one for you"
+        );
+        return c.json({ success: true });
+      }
+
+      const balance = await getSolanaBalance(user.solanaWallet.publicAddress);
+      await sendWhatsappMessage(
+        cleanPhoneNumber(From),
+        `Your Solana wallet balance is ${balance} SOL 🪙`
+      );
+
+      return c.json({ success: true });
+    }
+
+    if (callFunction === "sendSolanaTransaction") {
+      if (!user.solanaWallet) {
+        await sendWhatsappMessage(
+          cleanPhoneNumber(From),
+          "Please create a Solana wallet by asking Financy to create one for you"
+        );
+        return c.json({ success: true });
+      }
+
+      if (parameters.length !== 2) {
+        await sendWhatsappMessage(
+          cleanPhoneNumber(From),
+          "Please provide recipient public address and amount in SOL"
+        );
+        return c.json({ success: true });
+      }
+
+      const userBalance = await getSolanaBalance(
+        user.solanaWallet.publicAddress
+      );
+
+      if (Number(parameters[1]) > userBalance) {
+        await sendWhatsappMessage(
+          cleanPhoneNumber(From),
+          `You don't have enough SOL to send ${parameters[1]} SOL. Your balance is ${userBalance} SOL 🪙`
+        );
+        return c.json({ success: true });
+      }
+
+      const result = await sendSolanaTransaction(
+        user.solanaWallet.secretKey,
+        parameters[0],
+        Number(parameters[1])
+      );
+
+      const userBalanceAfter = await getSolanaBalance(
+        user.solanaWallet.publicAddress
+      );
+
+      if (result.success) {
+        await sendWhatsappMessage(cleanPhoneNumber(From), result.message);
+        await sendWhatsappMessage(
+          cleanPhoneNumber(From),
+          `Your balance after sending transaction is ${userBalanceAfter} SOL 🪙`
+        );
+      } else {
+        await sendWhatsappMessage(
+          cleanPhoneNumber(From),
+          `Sorry, I had trouble sending your transaction. Please try again.`
+        );
+      }
+
+      return c.json({ success: true });
+    }
+
+    if (callFunction === "getWalletDetails") {
+      if (!user.solanaWallet) {
+        await sendWhatsappMessage(
+          cleanPhoneNumber(From),
+          "Please create a Solana wallet by asking Financy to create one for you"
+        );
+        return c.json({ success: true });
+      }
+
+      await sendWhatsappMessage(
+        cleanPhoneNumber(From),
+        `Here's your Solana wallet details:\n\n` +
+          `Public Address:\n${user.solanaWallet.publicAddress}\n\n` +
+          `⚠️ KEEP THESE PRIVATE & SECURE ⚠️\n\n` +
+          `Secret Key:\n${user.solanaWallet.secretKey}\n\n` +
+          `Recovery Phrase:\n${user.solanaWallet.recoveryPhrase}`
+      );
+
+      return c.json({ success: true });
+    }
+
+    if (callFunction === "getWalletAddress") {
+      if (!user.solanaWallet) {
+        await sendWhatsappMessage(
+          cleanPhoneNumber(From),
+          "Please create a Solana wallet by asking Financy to create one for you"
+        );
+        return c.json({ success: true });
+      }
+      await sendWhatsappMessage(
+        cleanPhoneNumber(From),
+        `Here's your Solana wallet address:\n\n` +
+          `\n${user.solanaWallet.publicAddress}\n\n` +
+          `You can use this address to receive SOL from anyone.`
+      );
       return c.json({ success: true });
     }
   } catch (error) {

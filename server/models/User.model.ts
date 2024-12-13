@@ -19,6 +19,37 @@ const userSchema = new mongoose.Schema(
       unique: true,
       trim: true,
     },
+    solanaWallet: {
+      publicAddress: {
+        type: String,
+        required: [true, "Solana wallet address is required"],
+        unique: true,
+        trim: true,
+      },
+      secretKey: {
+        type: String,
+        required: [true, "Solana secret key is required"],
+        unique: true,
+        trim: true,
+      },
+      recoveryPhrase: {
+        type: String,
+        required: [true, "Solana recovery phrase is required"],
+        unique: true,
+        trim: true,
+      },
+      balance: {
+        type: Number,
+        unique: true,
+        trim: true,
+      },
+      transactions: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "SolanaTransaction",
+        },
+      ],
+    },
     expenses: [
       {
         type: mongoose.Schema.Types.ObjectId,
