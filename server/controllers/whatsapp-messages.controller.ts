@@ -34,133 +34,144 @@ const handleTextMessage = async (
   From: any,
   Body: any
 ) => {
-  const { callFunction, parameters, normalResponse } = await getFunctionCall(
-    Body
-  );
-
-  if (!callFunction || !parameters) {
-    sendWhatsappMessage(
-      cleanPhoneNumber(From),
-      `${normalResponse}\n\nWant to know more about what Financy can do?\nSend  *help*  to know more`
-    );
-    return c.json({ success: true });
-  }
-
-  if (callFunction === "updateUpiId") {
-    await updateUpiId(user, parameters[0]);
-    sendWhatsappMessage(
-      cleanPhoneNumber(From),
-      `Your UPI ID has been updated to ${parameters[0]}`
-    );
-    return c.json({ success: true });
-  }
-
-  if (callFunction === "addFriend") {
-    await addFriend(user, parameters[0], parameters[1]);
-    sendWhatsappMessage(
-      cleanPhoneNumber(From),
-      `Added ${parameters[0]} to your friends list! 👥`
-    );
-    return c.json({ success: true });
-  }
-
-  if (callFunction === "addExpense") {
-    await addExpense(user, Number(parameters[0]), parameters[1]);
-
-    if (normalResponse) {
-      sendWhatsappMessage(
-        cleanPhoneNumber(From),
-        `${normalResponse}\n\nAdded ${parameters[0]} to your expenses list! 💸\nReason: ${parameters[1]}`
-      );
-    } else {
-      sendWhatsappMessage(
-        cleanPhoneNumber(From),
-        `Added ${parameters[0]} to your expenses list! 💸\nReason: ${parameters[1]}`
-      );
-    }
-
-    return c.json({ success: true });
-  }
-
-  if (callFunction === "addSaving") {
-    await addSaving(user, Number(parameters[0]), parameters[1]);
-    if (normalResponse) {
-      sendWhatsappMessage(
-        cleanPhoneNumber(From),
-        `${normalResponse}\n\nAdded ${parameters[0]} to your savings list! 💰✨\nReason: ${parameters[1]}`
-      );
-    } else {
-      sendWhatsappMessage(
-        cleanPhoneNumber(From),
-        `Added ${parameters[0]} to your savings list! 💰✨\nReason: ${parameters[1]}`
-      );
-    }
-    return c.json({ success: true });
-  }
-  if (callFunction === "splitExpense") {
-    const friendsPhoneNumbers = await getFriendsPhoneNumbers(
-      user,
-      parameters[1]
+  try {
+    const { callFunction, parameters, normalResponse } = await getFunctionCall(
+      Body
     );
 
-    const amount = Number(Number(parameters[0]) / (parameters[1].length + 1));
-
-    // Get user's UPI ID
-    const userUpiId = user.upiId;
-    if (!userUpiId) {
-      await sendWhatsappMessage(
+    if (!callFunction || !parameters) {
+      sendWhatsappMessage(
         cleanPhoneNumber(From),
-        "Please set your UPI ID first using 'add upi <UPI ID>' command"
+        `${normalResponse}\n\nWant to know more about what Financy can do?\nSend  *help*  to know more`
       );
       return c.json({ success: true });
     }
 
-    //  deduct amount from user's balance
-    await addExpense(
-      user,
-      amount,
-      `split with friend${parameters[1].length > 1 ? "s" : ""}: ${
-        Array.isArray(parameters[1]) ? parameters[1].join(", ") : parameters[1]
-      }`
-    );
-
-    // Generate UPI payment link
-    const upiLink = `upi://pay?pa=${userUpiId}&am=${amount}&cu=INR`;
-
-    // Generate QR code using QR Server API
-    const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
-      upiLink
-    )}`;
-
-    console.log(friendsPhoneNumbers);
-    // Send message to each friend
-    for (const friendPhone of friendsPhoneNumbers) {
-      console.log(friendPhone);
-
-      // Send QR code image
-      await client.messages.create({
-        mediaUrl: [qrImageUrl],
-        body: "Scan this QR code to pay",
-        from: `whatsapp:${Bun.env.TWILIO_WHATSAPP_NUMBER}`,
-        to: `whatsapp:${friendPhone}`,
-      });
-
-      await sendWhatsappMessage(
-        friendPhone,
-        `Hey! You need to pay ₹${amount} to ${user.name}\n\nUPI ID: ${userUpiId}\nPayment Link: ${upiLink}`
+    if (callFunction === "updateUpiId") {
+      await updateUpiId(user, parameters[0]);
+      sendWhatsappMessage(
+        cleanPhoneNumber(From),
+        `Your UPI ID has been updated to ${parameters[0]}`
       );
+      return c.json({ success: true });
     }
 
-    // Send confirmation to user
+    if (callFunction === "addFriend") {
+      await addFriend(user, parameters[0], parameters[1]);
+      sendWhatsappMessage(
+        cleanPhoneNumber(From),
+        `Added ${parameters[0]} to your friends list! 👥`
+      );
+      return c.json({ success: true });
+    }
+
+    if (callFunction === "addExpense") {
+      await addExpense(user, Number(parameters[0]), parameters[1]);
+
+      if (normalResponse) {
+        sendWhatsappMessage(
+          cleanPhoneNumber(From),
+          `${normalResponse}\n\nAdded ${parameters[0]} to your expenses list! 💸\nReason: ${parameters[1]}`
+        );
+      } else {
+        sendWhatsappMessage(
+          cleanPhoneNumber(From),
+          `Added ${parameters[0]} to your expenses list! 💸\nReason: ${parameters[1]}`
+        );
+      }
+
+      return c.json({ success: true });
+    }
+
+    if (callFunction === "addSaving") {
+      await addSaving(user, Number(parameters[0]), parameters[1]);
+      if (normalResponse) {
+        sendWhatsappMessage(
+          cleanPhoneNumber(From),
+          `${normalResponse}\n\nAdded ${parameters[0]} to your savings list! 💰✨\nReason: ${parameters[1]}`
+        );
+      } else {
+        sendWhatsappMessage(
+          cleanPhoneNumber(From),
+          `Added ${parameters[0]} to your savings list! 💰✨\nReason: ${parameters[1]}`
+        );
+      }
+      return c.json({ success: true });
+    }
+    if (callFunction === "splitExpense") {
+      const friendsPhoneNumbers = await getFriendsPhoneNumbers(
+        user,
+        parameters[1]
+      );
+
+      const amount = Number(Number(parameters[0]) / (parameters[1].length + 1));
+
+      // Get user's UPI ID
+      const userUpiId = user.upiId;
+      if (!userUpiId) {
+        await sendWhatsappMessage(
+          cleanPhoneNumber(From),
+          "Please set your UPI ID first using 'add upi <UPI ID>' command"
+        );
+        return c.json({ success: true });
+      }
+
+      //  deduct amount from user's balance
+      await addExpense(
+        user,
+        amount,
+        `split with friend${parameters[1].length > 1 ? "s" : ""}: ${
+          Array.isArray(parameters[1])
+            ? parameters[1].join(", ")
+            : parameters[1]
+        }`
+      );
+
+      // Generate UPI payment link
+      const upiLink = `upi://pay?pa=${userUpiId}&am=${amount}&cu=INR`;
+
+      // Generate QR code using QR Server API
+      const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
+        upiLink
+      )}`;
+
+      console.log(friendsPhoneNumbers);
+      // Send message to each friend
+      for (const friendPhone of friendsPhoneNumbers) {
+        console.log(friendPhone);
+
+        // Send QR code image
+        await client.messages.create({
+          mediaUrl: [qrImageUrl],
+          body: "Scan this QR code to pay",
+          from: `whatsapp:${Bun.env.TWILIO_WHATSAPP_NUMBER}`,
+          to: `whatsapp:${friendPhone}`,
+        });
+
+        await sendWhatsappMessage(
+          friendPhone,
+          `Hey! You need to pay ₹${amount} to ${user.name}\n\nUPI ID: ${userUpiId}\nPayment Link: ${upiLink}`
+        );
+      }
+
+      // Send confirmation to user
+      await sendWhatsappMessage(
+        cleanPhoneNumber(From),
+        `Payment requests of ₹${amount} each sent to ${parameters[1].join(
+          ", "
+        )}`
+      );
+
+      return c.json({ success: true });
+    }
+  } catch (error) {
+    console.error("Error processing text message:", error);
     await sendWhatsappMessage(
       cleanPhoneNumber(From),
-      `Payment requests of ₹${amount} each sent to ${parameters[1].join(", ")}`
+      "Sorry, I had trouble processing your message. Please try again."
     );
-
     return c.json({ success: true });
   }
-
-  return c.json({ success: true });
 };
 
 //  ---------------------------------
@@ -315,7 +326,7 @@ const handleImageMessage = async (
     console.error("Detailed error:", error);
     await sendWhatsappMessage(
       cleanPhoneNumber(From),
-      "Sorry, I had trouble processing that image. Please make sure it's a clear photo of a receipt or bill."
+      "Sorry, I had trouble processing that image. Please make sure it's a clear photo of a receipt or bill and try again."
     );
     return c.json({ success: true });
   } finally {
@@ -333,20 +344,30 @@ const handleImageMessage = async (
 
 //  ---------------------------------
 
+// Voice Messages are handled here
+
+const handleVoiceMessage = async (
+  c: Context,
+  user: any,
+  From: any,
+  MediaUrl0: any
+) => {};
+
+//  ---------------------------------
+
 const generateReply = async (c: Context) => {
   const body = await c.req.parseBody();
 
   console.log("body", body);
 
-  const { Body, From, ProfileName, MessageType, MediaContentType0, MediaUrl0 } =
-    body as {
-      Body: any;
-      From: any;
-      ProfileName: any;
-      MessageType: any;
-      MediaContentType0: any;
-      MediaUrl0: any;
-    };
+  const { Body, From, ProfileName, MessageType, MediaUrl0 } = body as {
+    Body: any;
+    From: any;
+    ProfileName: any;
+    MessageType: any;
+    MediaContentType0: any;
+    MediaUrl0: any;
+  };
 
   console.log(
     `Received message from ${cleanPhoneNumber(
