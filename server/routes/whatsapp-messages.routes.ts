@@ -5,7 +5,7 @@ const whatsappRoutes = new Hono();
 
 whatsappRoutes.post("/receive-message", generateReply);
 
-//  TODO: User when message status are required
+//  TODO: Use User message status when required
 
 // whatsappRoutes.post("/message-status", async (c) => {
 //   const body = await c.req.parseBody();

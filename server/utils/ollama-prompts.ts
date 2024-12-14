@@ -8,7 +8,7 @@ const availableFunctions = [
   },
   {
     functionName: "addFriend",
-    parameters: ["<name> // string", "<phoneNumber>  // string +91xxxxxxxxxx"],
+    parameters: ["<name> // string", "<phoneNumber>  // string "],
     whenToCall: ["name and 10 digit phone number is present"],
   },
   {
@@ -29,9 +29,41 @@ const availableFunctions = [
   },
   {
     functionName: "splitExpense",
-    parameters: ["<amountEach> // number", "<friendsName> // stringArray [1-5]"],
+    parameters: [
+      "<amountEach> // number",
+      "<friendsName> // stringArray [1-5]",
+    ],
     whenToCall: [
       "if expense is made in multiple friends, asked to split expense among friends",
+    ],
+  },
+  {
+    functionName: "createSolanaWallet",
+    parameters: [],
+    whenToCall: ["asks to create solana wallet, web3 wallet "],
+  },
+  {
+    functionName: "getSolanaBalance",
+    parameters: [],
+    whenToCall: ["ask to get solana wallet balance"],
+  },
+  {
+    functionName: "sendSolanaTransaction",
+    parameters: ["<replaceWithRecipentAddress>", "<replaceWithAmount>"],
+    whenToCall: ["ask to send solana transaction"],
+  },
+  {
+    functionName: "getWalletDetails",
+    parameters: [],
+    whenToCall: [
+      "ask to get wallet details, public address, secret key, recovery phrase",
+    ],
+  },
+  {
+    functionName: "getWalletAddress",
+    parameters: [],
+    whenToCall: [
+      "ask to get wallet address, public address, how to receive SOL",
     ],
   },
 ];

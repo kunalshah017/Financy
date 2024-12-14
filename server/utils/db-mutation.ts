@@ -14,6 +14,14 @@ const updateUpiId = async (user: any, upiId: string) => {
 };
 
 const addFriend = async (user: any, name: string, phoneNumber: string) => {
+  if (!phoneNumber.startsWith("+91")) {
+    phoneNumber = "+91" + phoneNumber;
+  }
+
+  if (phoneNumber.length < 13) {
+    throw new Error("Phone number must be at least 10 digits long.");
+  }
+
   await User.findOneAndUpdate(
     { phoneNumber: user.phoneNumber },
     {
@@ -64,4 +72,24 @@ const addSaving = async (user: any, amount: number, description: string) => {
   );
 };
 
-export { updateUpiId, addFriend, addExpense, addSaving };
+const updateSolanaWallet = async (
+  user: any,
+  secretKey: string,
+  publicAddress: string,
+  recoveryPhrase: string
+) => {
+  await User.findOneAndUpdate(
+    { phoneNumber: user.phoneNumber },
+    {
+      $set: {
+        solanaWallet: {
+          secretKey,
+          publicAddress,
+          recoveryPhrase,
+        },
+      },
+    }
+  );
+};
+
+export { updateUpiId, addFriend, addExpense, addSaving, updateSolanaWallet };

@@ -16,8 +16,31 @@ const userSchema = new mongoose.Schema(
     },
     upiId: {
       type: String,
-      unique: true,
       trim: true,
+    },
+    solanaWallet: {
+      publicAddress: {
+        type: String,
+        trim: true,
+      },
+      secretKey: {
+        type: String,
+        trim: true,
+      },
+      recoveryPhrase: {
+        type: String,
+        trim: true,
+      },
+      balance: {
+        type: Number,
+        trim: true,
+      },
+      transactions: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "SolanaTransaction",
+        },
+      ],
     },
     expenses: [
       {
