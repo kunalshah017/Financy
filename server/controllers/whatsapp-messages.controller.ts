@@ -171,87 +171,55 @@ const handleTextMessage = async (
     }
 
     if (callFunction === "createSolanaWallet") {
-      if (callFunction === "createSolanaWallet") {
-        try {
-          // Get fresh user data with wallet info
-          const currentUser = await User.findOne({
-            phoneNumber: cleanPhoneNumber(From),
-          }).select("+solanaWallet");
+      try {
+        const currentUser = await User.findOne({
+          phoneNumber: cleanPhoneNumber(From),
+        }).select("+solanaWallet");
 
-          if (!currentUser) {
-            throw new Error("User not found");
-          }
-
-          // Multiple security checks for existing wallet
-          if (
-            currentUser.solanaWallet &&
-            currentUser.solanaWallet.publicAddress &&
-            currentUser.solanaWallet.secretKey
-          ) {
-            await sendWhatsappMessage(
-              cleanPhoneNumber(From),
-              "*Security Alert*: You already have an active Solana wallet! " +
-                "\nask Financy to provide your solana wallet details"
-            );
-            return c.json({ success: true });
-          }
-
-          // Only create new wallet if none exists
-          const wallet = createSolanaWallet();
-          await updateSolanaWallet(
-            currentUser,
-            wallet.secretKey,
-            wallet.publicKey,
-            String(wallet.mnemonic)
-          );
-
-          await sendWhatsappMessage(
-            cleanPhoneNumber(From),
-            `Here's your new Solana wallet! 🌟\n\n` +
-              `Public Address:\n${wallet.publicKey}\n\n` +
-              `⚠️ KEEP THESE PRIVATE & SECURE ⚠️\n\n` +
-              `Secret Key:\n${wallet.secretKey}\n\n` +
-              `Recovery Phrase:\n${wallet.mnemonic}\n` +
-              `\n\nWelcome to DeFi World of Financy 🪙!`
-          );
-
-          return c.json({ success: true });
-        } catch (error) {
-          console.error("Wallet creation error:", error);
-          await sendWhatsappMessage(
-            cleanPhoneNumber(From),
-            "Sorry, there was an error creating your wallet. Please try again later."
-          );
-          return c.json({ success: false });
+        if (!currentUser) {
+          throw new Error("User not found");
         }
-      }
-      if (user.solanaWallet && user.solanaWallet.publicKey) {
+
+        if (
+          currentUser.solanaWallet &&
+          currentUser.solanaWallet.publicAddress &&
+          currentUser.solanaWallet.secretKey
+        ) {
+          await sendWhatsappMessage(
+            cleanPhoneNumber(From),
+            "*Security Alert*: You already have an active Solana wallet! " +
+              "\nask Financy to provide your solana wallet details"
+          );
+          return c.json({ success: true });
+        }
+
+        const wallet = createSolanaWallet();
+        await updateSolanaWallet(
+          currentUser,
+          wallet.secretKey,
+          wallet.publicKey,
+          String(wallet.mnemonic)
+        );
+
         await sendWhatsappMessage(
           cleanPhoneNumber(From),
-          "You already have a Solana wallet! ask Financy to provide your solana wallet details"
+          `Here's your new Solana wallet! 🌟\n\n` +
+            `Public Address:\n${wallet.publicKey}\n\n` +
+            `⚠️ KEEP THESE PRIVATE & SECURE ⚠️\n\n` +
+            `Secret Key:\n${wallet.secretKey}\n\n` +
+            `Recovery Phrase:\n${wallet.mnemonic}\n` +
+            `\n\nWelcome to DeFi World of Financy 🪙!`
         );
+
         return c.json({ success: true });
+      } catch (error) {
+        console.error("Wallet creation error:", error);
+        await sendWhatsappMessage(
+          cleanPhoneNumber(From),
+          "Sorry, there was an error creating your wallet. Please try again later."
+        );
+        return c.json({ success: false });
       }
-
-      const wallet = createSolanaWallet();
-      await updateSolanaWallet(
-        user,
-        wallet.secretKey,
-        wallet.publicKey,
-        wallet.mnemonic
-      );
-
-      await sendWhatsappMessage(
-        cleanPhoneNumber(From),
-        `Here's your new Solana wallet! 🌟\n\n` +
-          `Public Address:\n${wallet.publicKey}\n\n` +
-          `⚠️ KEEP THESE PRIVATE & SECURE ⚠️\n\n` +
-          `Secret Key:\n${wallet.secretKey}\n\n` +
-          `Recovery Phrase:\n${wallet.mnemonic}` +
-          `Welcome to DeFi World of Financy 🪙!`
-      );
-
-      return c.json({ success: true });
     }
 
     if (callFunction === "getSolanaBalance") {

@@ -16,31 +16,23 @@ const userSchema = new mongoose.Schema(
     },
     upiId: {
       type: String,
-      unique: true,
       trim: true,
     },
     solanaWallet: {
       publicAddress: {
         type: String,
-        required: [true, "Solana wallet address is required"],
-        unique: true,
         trim: true,
       },
       secretKey: {
         type: String,
-        required: [true, "Solana secret key is required"],
-        unique: true,
         trim: true,
       },
       recoveryPhrase: {
         type: String,
-        required: [true, "Solana recovery phrase is required"],
-        unique: true,
         trim: true,
       },
       balance: {
         type: Number,
-        unique: true,
         trim: true,
       },
       transactions: [

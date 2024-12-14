@@ -8,7 +8,7 @@ const availableFunctions = [
   },
   {
     functionName: "addFriend",
-    parameters: ["<name> // string", "<phoneNumber>  // string +91xxxxxxxxxx"],
+    parameters: ["<name> // string", "<phoneNumber>  // string "],
     whenToCall: ["name and 10 digit phone number is present"],
   },
   {
