@@ -519,7 +519,89 @@ const handleVoiceMessage = async (
   user: any,
   From: any,
   MediaUrl0: any
-) => {};
+) => {
+  let tempAudioPath = "";
+  let tempWavPath = "";
+
+  try {
+    // Create temp directory
+    const tempDir = path.join(process.cwd(), "temp");
+    await fs.mkdir(tempDir, { recursive: true });
+
+    // Generate temp file paths
+    tempAudioPath = path.join(tempDir, `${uuidv4()}.ogg`);
+    tempWavPath = path.join(tempDir, `${uuidv4()}.wav`);
+
+    // Download audio file
+    const auth = Buffer.from(
+      `${Bun.env.TWILIO_ACCOUNT_SID}:${Bun.env.TWILIO_AUTH_TOKEN}`
+    ).toString("base64");
+
+    const initialResponse = await fetch(MediaUrl0, {
+      headers: { Authorization: `Basic ${auth}` },
+      redirect: "follow",
+    });
+
+    if (!initialResponse.ok) {
+      throw new Error(`Initial fetch failed: ${initialResponse.status}`);
+    }
+
+    // Get actual audio URL and fetch content
+    const actualAudioUrl = initialResponse.url;
+    const audioResponse = await fetch(actualAudioUrl);
+
+    if (!audioResponse.ok) {
+      throw new Error(`Audio fetch failed: ${audioResponse.status}`);
+    }
+
+    // Save audio to temp file
+    const arrayBuffer = await audioResponse.arrayBuffer();
+    await fs.writeFile(tempAudioPath, new Uint8Array(arrayBuffer));
+
+    // Use Python script to transcribe
+    const { stdout, stderr } = await new Promise<{
+      stdout: string;
+      stderr: string;
+    }>((resolve, reject) => {
+      const process = Bun.spawn([
+        "python",
+        "config/whisper_transcribe.py",
+        tempAudioPath,
+        tempWavPath,
+      ]);
+      resolve({
+        stdout: process.stdout.toString(),
+        stderr: process.stderr.toString(),
+      });
+    });
+
+    const transcribedText = stdout.toString().trim();
+
+    // Handle transcribed text like a regular text message
+    await handleTextMessage(c, user, From, transcribedText);
+
+    return c.json({ success: true });
+  } catch (error) {
+    console.error("Error processing voice message:", error);
+    await sendWhatsappMessage(
+      cleanPhoneNumber(From),
+      "Sorry, I had trouble processing your voice message. Please try again."
+    );
+    return c.json({ success: true });
+  } finally {
+    // Clean up temp files
+    for (const file of [tempAudioPath, tempWavPath]) {
+      if (file) {
+        try {
+          await fs.unlink(file);
+          console.log("Temp file deleted:", file);
+        } catch (error) {
+          console.error("Error deleting temp file:", error);
+        }
+      }
+    }
+  }
+};
 
 //  ---------------------------------
 
