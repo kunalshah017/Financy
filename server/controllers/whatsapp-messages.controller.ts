@@ -525,12 +525,12 @@ const handleVoiceMessage = async (
 
   try {
     // Create temp directory
-    const tempDir = path.join(process.cwd(), "temp");
+    const tempDir = path.join(process.cwd(), "server", "temp");
     await fs.mkdir(tempDir, { recursive: true });
 
-    // Generate temp file paths
-    tempAudioPath = path.join(tempDir, `${uuidv4()}.ogg`);
-    tempWavPath = path.join(tempDir, `${uuidv4()}.wav`);
+    // Generate temp file paths with absolute paths
+    tempAudioPath = path.resolve(tempDir, `${uuidv4()}.ogg`);
+    tempWavPath = path.resolve(tempDir, `${uuidv4()}.wav`);
 
     // Download audio file
     const auth = Buffer.from(
@@ -546,7 +546,6 @@ const handleVoiceMessage = async (
       throw new Error(`Initial fetch failed: ${initialResponse.status}`);
     }
 
-    // Get actual audio URL and fetch content
     const actualAudioUrl = initialResponse.url;
     const audioResponse = await fetch(actualAudioUrl);
 
@@ -554,31 +553,36 @@ const handleVoiceMessage = async (
       throw new Error(`Audio fetch failed: ${audioResponse.status}`);
     }
 
-    // Save audio to temp file
     const arrayBuffer = await audioResponse.arrayBuffer();
     await fs.writeFile(tempAudioPath, new Uint8Array(arrayBuffer));
 
+    if (!(await fs.exists(tempAudioPath))) {
+      throw new Error("Audio file not saved correctly");
+    }
+
     // Use Python script to transcribe
-    const { stdout, stderr } = await new Promise<{
-      stdout: string;
-      stderr: string;
-    }>((resolve, reject) => {
-      const process = Bun.spawn([
-        "python",
-        "config/whisper_transcribe.py",
-        tempAudioPath,
-        tempWavPath,
-      ]);
-      resolve({
-        stdout: process.stdout.toString(),
-        stderr: process.stderr.toString(),
-      });
-    });
+    const scriptPath = path.resolve(
+      process.cwd(),
+      "server",
+      "config",
+      "whisper_transcribe.py"
+    );
+    const proc = Bun.spawn(["python", scriptPath, tempAudioPath, tempWavPath]);
 
-    const transcribedText = stdout.toString().trim();
+    // Wait for process to complete
+    const exitCode = await proc.exited;
 
-    // Handle transcribed text like a regular text message
-    await handleTextMessage(c, user, From, transcribedText);
+    if (exitCode !== 0) {
+      const error = await new Response(proc.stderr).text();
+      throw new Error(`Transcription failed: ${error}`);
+    }
+
+    const transcribedText = (await new Response(proc.stdout).text()).trim();
+    console.log("Transcribed text:", transcribedText);
+
+    if (transcribedText) {
+      await handleTextMessage(c, user, From, transcribedText);
+    }
 
     return c.json({ success: true });
   } catch (error) {
@@ -591,7 +595,7 @@ const handleVoiceMessage = async (
   } finally {
     // Clean up temp files
     for (const file of [tempAudioPath, tempWavPath]) {
-      if (file) {
+      if (file && (await fs.exists(file))) {
         try {
           await fs.unlink(file);
           console.log("Temp file deleted:", file);
@@ -652,6 +656,10 @@ const generateReply = async (c: Context) => {
 
   if (MessageType === "image") {
     await handleImageMessage(c, user, From, MediaUrl0);
+  }
+
+  if (MessageType === "audio") {
+    await handleVoiceMessage(c, user, From, MediaUrl0);
   }
 
   return c.json({ success: true });
