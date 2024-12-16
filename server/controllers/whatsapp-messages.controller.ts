@@ -44,7 +44,7 @@ const handleTextMessage = async (
       Body
     );
 
-    if (!callFunction || !parameters) {
+    if (callFunction === "" && parameters.length === 0) {
       sendWhatsappMessage(
         cleanPhoneNumber(From),
         `${normalResponse}\n\nWant to know more about what Financy can do?\nSend  *help*  to know more`

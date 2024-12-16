@@ -3,12 +3,12 @@ import ollama from "ollama";
 const connectOllama = async () => {
   try {
     const generatedResponse = await ollama.generate({
-      model: "llama3.1",
+      model: "calebfahlgren/natural-functions",
       prompt: "",
     });
 
     if (generatedResponse.done) {
-      console.log("🤖 llama3.1 online & ready");
+      console.log("🤖 calebfahlgren/natural-functions online & ready");
     } else {
       console.log("Problem with Ollama");
     }

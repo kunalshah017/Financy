@@ -71,7 +71,7 @@ const availableFunctions = [
 const getFunctionCall = async (message: string) => {
   try {
     const generatedResponse = await ollama.generate({
-      model: "llama3.1",
+      model: "calebfahlgren/natural-functions",
       prompt: `You are a finance assistant named Financy. Parse the user's message and determine the task they want you to do, take help from whenToCall and decide function to be called for that task, these are the available functions, parameters and when to call them:
       ${JSON.stringify(availableFunctions)}
 
