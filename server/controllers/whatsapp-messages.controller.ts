@@ -521,16 +521,14 @@ const handleVoiceMessage = async (
   MediaUrl0: any
 ) => {
   let tempAudioPath = "";
-  let tempWavPath = "";
 
   try {
     // Create temp directory
     const tempDir = path.join(process.cwd(), "server", "temp");
     await fs.mkdir(tempDir, { recursive: true });
 
-    // Generate temp file paths with absolute paths
+    // Generate temp file path
     tempAudioPath = path.resolve(tempDir, `${uuidv4()}.ogg`);
-    tempWavPath = path.resolve(tempDir, `${uuidv4()}.wav`);
 
     // Download audio file
     const auth = Buffer.from(
@@ -556,28 +554,27 @@ const handleVoiceMessage = async (
     const arrayBuffer = await audioResponse.arrayBuffer();
     await fs.writeFile(tempAudioPath, new Uint8Array(arrayBuffer));
 
-    if (!(await fs.exists(tempAudioPath))) {
-      throw new Error("Audio file not saved correctly");
-    }
+    // Create form data for Whisper API
+    const formData = new FormData();
+    const audioBlob = new Blob([await fs.readFile(tempAudioPath)]);
+    formData.append("audio_file", audioBlob, "audio.ogg");
 
-    // Use Python script to transcribe
-    const scriptPath = path.resolve(
-      process.cwd(),
-      "server",
-      "config",
-      "whisper_transcribe.py"
+    // Call Whisper API service
+    const whisperResponse = await fetch(
+      "http://localhost:9000/asr?output=json",
+      {
+        method: "POST",
+        body: formData,
+      }
     );
-    const proc = Bun.spawn(["python", scriptPath, tempAudioPath, tempWavPath]);
 
-    // Wait for process to complete
-    const exitCode = await proc.exited;
-
-    if (exitCode !== 0) {
-      const error = await new Response(proc.stderr).text();
-      throw new Error(`Transcription failed: ${error}`);
+    if (!whisperResponse.ok) {
+      throw new Error("Failed to transcribe audio");
     }
 
-    const transcribedText = (await new Response(proc.stdout).text()).trim();
+    const result = await whisperResponse.json();
+    const transcribedText = result.text;
+
     console.log("Transcribed text:", transcribedText);
 
     if (transcribedText) {
@@ -593,15 +590,13 @@ const handleVoiceMessage = async (
     );
     return c.json({ success: true });
   } finally {
-    // Clean up temp files
-    for (const file of [tempAudioPath, tempWavPath]) {
-      if (file && (await fs.exists(file))) {
-        try {
-          await fs.unlink(file);
-          console.log("Temp file deleted:", file);
-        } catch (error) {
-          console.error("Error deleting temp file:", error);
-        }
+    // Clean up temp file
+    if (tempAudioPath && (await fs.exists(tempAudioPath))) {
+      try {
+        await fs.unlink(tempAudioPath);
+        console.log("Temp file deleted:", tempAudioPath);
+      } catch (error) {
+        console.error("Error deleting temp file:", error);
       }
     }
   }
