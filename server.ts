@@ -14,7 +14,7 @@ app.use(
   "*",
   cors({
     origin: "*",
-    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowMethods: ["GET", "POST"],
     allowHeaders: ["Content-Type", "Authorization"],
     exposeHeaders: ["Content-Length"],
     maxAge: 86400,
@@ -25,13 +25,13 @@ app.use(
 app.use("*", prettyJSON());
 
 await connectDB();
-
 await connectOllama();
 
 // -------------------------------------------
 
 // ---------- Routes Configuration -----------
 
+app.get("/", (c) => c.text("Financy API is running!"));
 app.route("/api/whatsapp", whatsappRoutes);
 
 // -------------------------------------------
