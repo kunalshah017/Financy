@@ -1,9 +1,10 @@
 import { type Context } from "hono";
 import axios from "axios";
-import ollama from "ollama";
+import { ollama } from "../config/ollama";
 import { promises as fs } from "fs";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
+import { Ollama } from "ollama";
 
 const imageToBase64 = require("image-to-base64");
 
@@ -563,13 +564,10 @@ const handleVoiceMessage = async (
     formData.append("audio_file", audioBlob, "audio.ogg");
 
     // Call Whisper API service
-    const whisperResponse = await fetch(
-      "http://localhost:9000/asr?output=json",
-      {
-        method: "POST",
-        body: formData,
-      }
-    );
+    const whisperResponse = await fetch("http://whisper:9000/asr?output=json", {
+      method: "POST",
+      body: formData,
+    });
 
     if (!whisperResponse.ok) {
       throw new Error("Failed to transcribe audio");
