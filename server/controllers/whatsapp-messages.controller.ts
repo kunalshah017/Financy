@@ -44,7 +44,10 @@ const handleTextMessage = async (
       Body
     );
 
-    if (callFunction === "" && parameters.length === 0) {
+    if (
+      (callFunction === "" || callFunction === "normalResponse") &&
+      parameters.length === 0
+    ) {
       sendWhatsappMessage(
         cleanPhoneNumber(From),
         `${normalResponse}\n\nWant to know more about what Financy can do?\nSend  *help*  to know more`
@@ -519,7 +522,88 @@ const handleVoiceMessage = async (
   user: any,
   From: any,
   MediaUrl0: any
-) => {};
+) => {
+  let tempAudioPath = "";
+
+  try {
+    // Create temp directory
+    const tempDir = path.join(process.cwd(), "server", "temp");
+    await fs.mkdir(tempDir, { recursive: true });
+
+    // Generate temp file path
+    tempAudioPath = path.resolve(tempDir, `${uuidv4()}.ogg`);
+
+    // Download audio file
+    const auth = Buffer.from(
+      `${Bun.env.TWILIO_ACCOUNT_SID}:${Bun.env.TWILIO_AUTH_TOKEN}`
+    ).toString("base64");
+
+    const initialResponse = await fetch(MediaUrl0, {
+      headers: { Authorization: `Basic ${auth}` },
+      redirect: "follow",
+    });
+
+    if (!initialResponse.ok) {
+      throw new Error(`Initial fetch failed: ${initialResponse.status}`);
+    }
+
+    const actualAudioUrl = initialResponse.url;
+    const audioResponse = await fetch(actualAudioUrl);
+
+    if (!audioResponse.ok) {
+      throw new Error(`Audio fetch failed: ${audioResponse.status}`);
+    }
+
+    const arrayBuffer = await audioResponse.arrayBuffer();
+    await fs.writeFile(tempAudioPath, new Uint8Array(arrayBuffer));
+
+    // Create form data for Whisper API
+    const formData = new FormData();
+    const audioBlob = new Blob([await fs.readFile(tempAudioPath)]);
+    formData.append("audio_file", audioBlob, "audio.ogg");
+
+    // Call Whisper API service
+    const whisperResponse = await fetch(
+      "http://localhost:9000/asr?output=json",
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
+
+    if (!whisperResponse.ok) {
+      throw new Error("Failed to transcribe audio");
+    }
+
+    const result = await whisperResponse.json();
+    const transcribedText = result.text;
+
+    console.log("Transcribed text:", transcribedText);
+
+    if (transcribedText) {
+      await handleTextMessage(c, user, From, transcribedText);
+    }
+
+    return c.json({ success: true });
+  } catch (error) {
+    console.error("Error processing voice message:", error);
+    await sendWhatsappMessage(
+      cleanPhoneNumber(From),
+      "Sorry, I had trouble processing your voice message. Please try again."
+    );
+    return c.json({ success: true });
+  } finally {
+    // Clean up temp file
+    if (tempAudioPath && (await fs.exists(tempAudioPath))) {
+      try {
+        await fs.unlink(tempAudioPath);
+        console.log("Temp file deleted:", tempAudioPath);
+      } catch (error) {
+        console.error("Error deleting temp file:", error);
+      }
+    }
+  }
+};
 
 //  ---------------------------------
 
@@ -570,6 +654,10 @@ const generateReply = async (c: Context) => {
 
   if (MessageType === "image") {
     await handleImageMessage(c, user, From, MediaUrl0);
+  }
+
+  if (MessageType === "audio") {
+    await handleVoiceMessage(c, user, From, MediaUrl0);
   }
 
   return c.json({ success: true });
