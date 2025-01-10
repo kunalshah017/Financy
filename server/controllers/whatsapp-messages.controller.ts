@@ -564,13 +564,10 @@ const handleVoiceMessage = async (
     formData.append("audio_file", audioBlob, "audio.ogg");
 
     // Call Whisper API service
-    const whisperResponse = await fetch(
-      "http://localhost:9000/asr?output=json",
-      {
-        method: "POST",
-        body: formData,
-      }
-    );
+    const whisperResponse = await fetch("http://whisper:9000/asr?output=json", {
+      method: "POST",
+      body: formData,
+    });
 
     if (!whisperResponse.ok) {
       throw new Error("Failed to transcribe audio");
