@@ -1,0 +1,43 @@
+version: "3.8"
+
+services:
+  ollama:
+    build: ./ollama
+    ports:
+      - 11434:11434
+    volumes:
+      - ollama-models:/root/.ollama
+    networks:
+      - financy-network
+    entrypoint: ["/usr/bin/bash", "/pull-models.sh"]
+
+  whisper:
+    image: onerahmet/openai-whisper-asr-webservice:latest
+    ports:
+      - 9000:9000
+    environment:
+      - ASR_MODEL=base
+      - ASR_ENGINE=openai_whisper
+
+  financy:
+    build: .
+    ports:
+      - 3000:3000
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+    networks:
+      - financy-network
+    depends_on:
+      - ollama
+
+networks:
+  financy-network:
+    driver: bridge
+
+volumes:
+  ollama-models:
+    driver: local
+  financy-volume:
+    driver: local

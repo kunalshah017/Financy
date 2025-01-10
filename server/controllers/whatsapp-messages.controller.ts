@@ -1,9 +1,10 @@
 import { type Context } from "hono";
 import axios from "axios";
-import ollama from "ollama";
+import { ollama } from "../config/ollama";
 import { promises as fs } from "fs";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
+import { Ollama } from "ollama";
 
 const imageToBase64 = require("image-to-base64");
 

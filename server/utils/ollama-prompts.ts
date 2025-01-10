@@ -1,4 +1,4 @@
-import ollama from "ollama";
+import { ollama } from "../config/ollama";
 
 const availableFunctions = [
   {

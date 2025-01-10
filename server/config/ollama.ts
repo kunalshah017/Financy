@@ -1,4 +1,9 @@
-import ollama from "ollama";
+// import ollama from "ollama";
+import { Ollama } from "ollama";
+
+const ollama = new Ollama({
+  host: "http://ollama:11434",
+});
 
 const connectOllama = async () => {
   try {
@@ -17,4 +22,4 @@ const connectOllama = async () => {
   }
 };
 
-export { connectOllama };
+export { connectOllama, ollama };

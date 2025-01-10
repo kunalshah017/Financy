@@ -4,7 +4,10 @@
   "type": "module",
   "scripts": {
     "dev": "bun run --watch server.ts",
-    "start": "bun run server.ts"
+    "start": "bun ./dist/server.js",
+    "build": "bun build ./server.ts --outdir ./dist --target node",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@types/bun": "latest"
