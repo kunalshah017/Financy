@@ -2,6 +2,8 @@
 
 Financy is a WhatsApp AI solution that helps you manage your finances. Track expenses, savings, and bill splits with ease. It also manages your Web3 finances with Solana - track tokens and send them to others.
 
+- [Financy Demo Video](https://youtu.be/dedMXwm6IHc)
+
 ## Features ✨
 
 - 💬 WhatsApp-based interaction
