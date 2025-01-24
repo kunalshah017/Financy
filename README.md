@@ -159,7 +159,7 @@ Contributions are always welcome! Please feel free to open an issue or submit a 
 
 ## License 📜
 
-This project is licensed under the MIT License.
+This project is licensed under the [MIT License](https://github.com/kunalshah017/Financy/blob/main/LICENSE).
 
 ## Inspiration 💡
 
